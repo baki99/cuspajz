@@ -1,0 +1,199 @@
+Papinjo link:
+https://www.youtube.com/watch?v=Keruw_31exU
+
+Subnet calc:
+http://vlsm-calc.net
+
+-------------
+inicijalni config:
+
+hostname R1
+no ip domain-lookup
+banner motd #Pristup neovlastenim osobama nije dozvoljen!#
+line con 0 // sifra za konzolu
+pass cisco // sifra za konzolu
+login
+logging synchronous
+enable secret [SIFRA] // sifra za privileged mod
+line vty 0 15  // sifra za telnet/ssh
+password cisco //
+-----------------
+
+VTP SERVER:
+vtp domain [XYZ]
++ svi linkovi prema ostalim switchevima i routeru gdje su subinterfaceovi u trunk
++ nakucati VLANove:
+vlan [XY]
+name [XY]
+------------------
+
+SUBINTERFACEOVI:
+int fa 0/0.[broj]
+enc dot1q [broj vlana]
+ip add [IP] [subnet mask]
++ glavni interface ne smije imati IP i mora biti upaljen (no shut)
+----------------------
+
+TRUNK (u interfaceu):
+switchport mode trunk
+
+ACCESS (u interfaceu):
+switchport mode access
+switchport access vlan [broj vlana]
+
+PROVJERA:
+show int trunk
+show vlan brief
+
+---------------------------
+
+SPANNING TREE:
+spanning-tree vlan [svi vlanovi u igri, npr. 25,35,99] root primary
+----------------------
+
+EIGRP:
+router eigrp 1
+network [adresa mreže] [inverse subnet mask]
+no auto-summary
+-----------------------
+
+SSH:
+ip domain-name [IME]
+crypto key generate rsa
+2048
+line vty 0 15
+transport input ssh
+------------------------
+
+DHCP:
+ip dhcp excluded-address 172.16.1.1 172.16.1.100
+ip dhcp excluded-address 192.168.1.1 192.168.1.100
+ip dhcp pool [ime]
+network 172.16.1.0 255.255.255.0
+default-router 172.16.1.1
+dns-server [ip]
+------------
+
+DHCP RELAY:
+-> uæi u svaki interface (ili subinterface)
+ip helper-address [IP dhcp servera preko IPa do kojeg može ovaj router]
+------------------
+
+omoguæavanje management pristupa switchevima:
+-> dodati ip adresu za željeni vlan (najcesce management):
+int vlan 99
+ip add	xxx yyy
+ip default-gateway xxx
++ definirati željenu telnet šifru:
+line vty 0 15
+password cisco
++ definirati sifru za privileged mod (to je FUNKCIONALAN pristup)
+enable secret [SIFRA]
+
+-------------------
+
+Blokiranje da raèunala nisu svjesna OSPFa ili EIGRPa:
+-> uæi u routing protokol:
+passive-interface [interface] // npr passive-interface fa0/5.25
+
+------
+
+ACCESS LISTE:
+(std)
+ip access-list standard [IME]
+permit host xxxx
+
+(ext)
+ip access-list extended [IME]
+permit [protocol ip/tcp/udp] [source] [destination] eq 80
+npr: permit tcp any host x.y.z eq 80
+
+permit icmp any host x.y.z echo
+
+
+PRIMJENA:
+na npr telnet/ssh:
+line vty 0 15
+access-class [IME ACCESS LISTE] in
+
+na interface:
+(u interfaceu): ip access-group [IME] in
+
+
+-------------
+
+PORT SECURITY:
+modovi:
+PROTECT -> blokira promet kad doðe do violationa
+RESTRICT -> blokira promet + syslog poruka
+SHUTDOWN -> gasi port (err-disabled) + syslog
+
+Naèini uèenja macova:
+DYNAMIC -> bilo koje mac adrese, èuva ih dok su žive + 300 sec
+STATIC -> rucno unesene MAC adrese
+STICKY -> pamti prvih xy macova
+
+
+-> uci na interface gdje je komp
+switchport port-security
+switchport port-security maximum [max broj mac adresa]
+switchport port-security mac-address [dynamic/static/sticky]
+switchport port-security violation [restrict/shutdown/protect]
+
+PROVJERA:
+show port-security
+-----------------
+
+NAT:
+
+ip access-list standard NAT
+pemit 172.16.0.0 0.0.0.255
+permit 172.16.1.0 0.0.0.255
+permit 192.168.1.0 0.0.0.255
+exit
+ip nat inside source list [ime acl-a koji matchira mreže] interface [VANJSKI INTERFACE] overload
+
++ uci u vanjski interface egde routera:
+ip nat outside
+
++ uci u unutarnji interface:
+ip nat inside
+------------------
+
+BGP:
+HQ:
+router bgp 34594
+neighbor [IP neighbora] remote-as [remote AS #]
+network [net address] mask [subnet mask]
+
+PROVJERA:
+show ip bgp summary
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

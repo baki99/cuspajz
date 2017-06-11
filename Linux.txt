@@ -1,0 +1,489 @@
+1. Napravite korisnike student1, student2, student3, student4. Napravite grupe zavrsni i
+diplomski.
+
+Useradd student1
+Useradd student2
+Useradd student3
+Useradd student4
+Groupadd zavrsni
+Groupadd diplomski
+--------------------------------------------------------------------------------
+ALTERNATIVNO :
+[root@centos ~]# echo student{1..4}|xargs -n 1 useradd
+[root@centos ~]# echo student{1..4}|xargs -n 1 id
+uid=501(student1) gid=501(student1) groups=501(student1)
+uid=502(student2) gid=502(student2) groups=502(student2)
+uid=503(student3) gid=503(student3) groups=503(student3)
+uid=504(student4) gid=504(student4) groups=504(student4)
+--------------------------------------------------------------------------------
+
+
+
+2. Studentima postavite lozinke „student“. Korisnike student1 i student2 dodajte u grupu
+završni, a student3 i student4 u grupu diplomski.
+
+Passwd student1
+Passwd student2
+Passwd student3
+Passwd student4
+--------------------------------------------------------------------------------
+ALTERNATIVNO : :)
+echo -n student{1..4}| xargs -d ' ' -n 1 -I PERO123 sh -c "passwd --stdin PERO123 <<<student"
+Changing password for user student1.
+passwd: all authentication tokens updated successfully.
+Changing password for user student2.
+passwd: all authentication tokens updated successfully.
+Changing password for user student3.
+passwd: all authentication tokens updated successfully.
+Changing password for user student4.
+passwd: all authentication tokens updated successfully.
+--------------------------------------------------------------------------------
+Usermod –a –G zavrsni student1
+Usermod –a –G zavrsni student2
+Usermod –a –G diplomski student3
+Usermod –a –G diplomski student4
+HINT : -a je u kontekstu ovog zadatka nepotrebno... u nekoj drugoj situaciji moze biti
+potrebno, ali ne i ovdije, vidi man
+--------------------------------------------------------------------------------
+ALTERNATIVNO :
+[root@centos ~]# echo student{1,2}|xargs -n 1 usermod -G zavrsni
+[root@centos ~]# echo student{3,4}|xargs -n 1 usermod -G diplomski
+[root@centos ~]# echo student{1..4}|xargs -n 1 id
+uid=501(student1) gid=501(student1) groups=501(student1),505(zavrsni)
+uid=502(student2) gid=502(student2) groups=502(student2),505(zavrsni)
+uid=503(student3) gid=503(student3) groups=503(student3),506(diplomski)
+uid=504(student4) gid=504(student4) groups=504(student4),506(diplomski)
+--------------------------------------------------------------------------------
+PROVJERA: cat /etc/group
+ALT_PROVJERA : id studentX
+
+
+
+
+
+3. Dodajte virtualni mrežni adapter na vašu virtualnu mašinu i to na drugu mrežnu karticu
+(eth1). Virtualni adapter mora imati ekstenziju :0, IP adresu 192.168.0.50 sa 24-bitnom
+maskom, DNS i gateway ne postavljati.
+
+vim /etc/sysconfig/network-scripts/ifcfg-eth1:0
+DEVICE=eth1:0
+IPADDR=192.168.0.50
+NETMASK=255.255.255.0
+ONBOOT=yes
+BOOTPROTO=static
+--------------------------------------------------------------------------------
+[root@centos ~]# cat <<EOF >/etc/sysconfig/network-scripts/ifcfg-eth1:0
+> DEVICE=eth1:0
+> BOOTPROTO=none
+> IPADDR=192.168.0.50
+> NETMASK=255.255.255.0
+> ONBOOT=yes
+> EOF
+................................................................................
+PROVJERA:
+................................................................................
+[root@centos ~]# cat /etc/sysconfig/network-scripts/ifcfg-eth1:0
+DEVICE=eth1:0
+BOOTPROTO=none
+IPADDR=192.168.0.50
+NETMASK=255.255.255.0
+ONBOOT=yes
+[root@centos ~]# ifup eth1:0
+Determining if ip address 192.168.0.50 is already in use for device eth1...
+[root@centos ~]# ip addr show dev eth1:0
+3: eth1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP qlen 1000
+link/ether 52:54:00:93:ef:89 brd ff:ff:ff:ff:ff:ff
+inet 192.168.0.50/24 brd 192.168.0.255 scope global eth1:0
+inet6 fe80::5054:ff:fe93:ef89/64 scope link
+valid_lft forever preferred_lft forever
+[root@centos ~]# ifdown eth1:0
+[root@centos ~]# ip a s dev eth1:0
+3: eth1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP qlen 1000
+link/ether 52:54:00:93:ef:89 brd ff:ff:ff:ff:ff:ff
+inet6 fe80::5054:ff:fe93:ef89/64 scope link
+valid_lft forever preferred_lft forever
+--------------------------------------------------------------------------------
+Ip link set eth1:0 up < OVO NEMA VEZE S NICIM U OVOM ZADATKU, NE KORISTITI (OSIM
+AKO NE ZNATE TOCNO STO ZELITE POSTICI)
+Service network restart
+PROVJERA:ifconfig
+
+
+
+
+
+4. Vapa virtualna mašina ima dva dodatna virtualna diska, /dev/sdb i dev/sdc, svaki
+kapaciteta 1GB. Napravite i formatirajte èetiri 500MB particije po sljedeæem scenariju:
+a. Ext4 particija na /dev/sdb, trajno mountana u direktorij /ext4, velièine 500MB
+b. Ext3 particija na /dev/sdb, trajno mountana u direktorij /ext3, velièine 500MB
+c. Ext2 particija na /dev/sdc, trajno mountana u direktorij /ext2, velièine 500MB
+d. Swap particija na /dev/sdc, trajno ukljuèena, velièine 500MB
+
+
+--------------------------------------------------------------------------------
+[root@centos ~]# lsblk
+NAME MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+sr0 11:0 1 1024M 0 rom
+vda 252:0 0 8G 0 disk
++¦vda1 252:1 0 500M 0 part /boot
+L¦vda2 252:2 0 7.5G 0 part
++¦vg_centos-lv_root (dm-0) 253:0 0 6.7G 0 lvm /
+L¦vg_centos-lv_swap (dm-1) 253:1 0 816M 0 lvm [SWAP]
+vdb 252:16 0 1G 0 disk
+vdc 252:32 0 1G 0 disk
+[root@centos ~]# parted -s /dev/vdb -- mklabel gpt \ mkpart primary 0MiB 500MiB \ mkpart primary
+500MiB 1000MiB
+
+Warning: The resulting partition is not properly aligned for best performance.
+Warning: The resulting partition is not properly aligned for best performance.
+[root@centos ~]# parted -s /dev/vdc -- mklabel gpt \ mkpart primary 0MiB 500MiB \ mkpart primary
+500MiB 1000MiB
+
+Warning: The resulting partition is not properly aligned for best performance.
+Warning: The resulting partition is not properly aligned for best performance.
+[root@centos ~]# lsblk
+
+NAME MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+sr0 11:0 1 1024M 0 rom
+vda 252:0 0 8G 0 disk
++¦vda1 252:1 0 500M 0 part /boot
+L¦vda2 252:2 0 7.5G 0 part
++¦vg_centos-lv_root (dm-0) 253:0 0 6.7G 0 lvm /
+L¦vg_centos-lv_swap (dm-1) 253:1 0 816M 0 lvm [SWAP]
+vdb 252:16 0 1G 0 disk
++¦vdb1 252:17 0 500M 0 part
+L¦vdb2 252:18 0 500M 0 part
+vdc 252:32 0 1G 0 disk
++¦vdc1 252:33 0 500M 0 part
+L¦vdc2 252:34 0 500M 0 part
+[root@centos ~]# mkfs.ext4 /dev/vdb1
+
+mke2fs 1.41.12 (17-May-2010)
+Filesystem label=
+OS type: Linux
+...IZREZANO…
+[root@centos ~]# mkfs.ext3 /dev/vdb2
+
+mke2fs 1.41.12 (17-May-2010)
+Filesystem label=
+OS type: Linux
+...IZREZANO…
+[root@centos ~]# mkfs.ext2 /dev/vdc1
+
+mke2fs 1.41.12 (17-May-2010)
+Filesystem label=
+OS type: Linux
+...IZREZANO…
+[root@centos ~]# mkswap /dev/vdc2
+
+Setting up swapspace version 1, size = 511996 KiB
+no label, UUID=a777f4d0-4b81-400b-9db6-17e03440deca
+[root@centos ~]# blkid
+
+/dev/vda1: UUID="30ae8b0b-d673-4651-b398-62c3f03e1024" TYPE="ext4"
+/dev/vda2: UUID="du1Wgu-CIGZ-iAUr-micB-36sa-TjNw-rULD73" TYPE="LVM2_member"
+/dev/mapper/vg_centos-lv_root: UUID="3769f677-b99d-431f-bd19-53fc697c9aa3" TYPE="ext4"
+/dev/mapper/vg_centos-lv_swap: UUID="97915865-6ed6-4044-a611-0d4fca500cb8" TYPE="swap"
+/dev/vdb1: UUID="3ab18765-62eb-48d8-bd74-b3ffb3189d02" TYPE="ext4"
+/dev/vdb2: UUID="42b79a5f-b185-44b3-9bbe-55d971166073" SEC_TYPE="ext2" TYPE="ext3"
+/dev/vdc1: UUID="3f4dfcbb-e854-46c2-bbbe-eae460c4226d" TYPE="ext2"
+/dev/vdc2: UUID="a777f4d0-4b81-400b-9db6-17e03440deca" TYPE="swap"
+[root@centos ~]# mkdir /ext4 /ext3 /ext2
+
+[root@centos ~]# ls -ald /ext*
+
+drwxr-xr-x. 2 root root 4096 Jun 10 00:24 /ext2
+drwxr-xr-x. 2 root root 4096 Jun 10 00:24 /ext3
+drwxr-xr-x. 2 root root 4096 Jun 10 00:24 /ext4
+[root@centos ~]# echo "/dev/vdb1 /ext4 ext4 defaults 0 2" >> /etc/fstab
+
+[root@centos ~]# echo "/dev/vdb2 /ext3 ext3 defaults 0 2">> /etc/fstab
+
+[root@centos ~]# echo "/dev/vdc1 /ext2 ext2 defaults 0 2" >> /etc/fstab
+
+[root@centos ~]# echo "/dev/vdc2 none swap defaults 0 0" >> /etc/fstab
+
+[root@centos ~]# mount -a
+
+[root@centos ~]# mount|grep vdb
+
+/dev/vdb1 on /ext4 type ext4 (rw)
+/dev/vdb2 on /ext3 type ext3 (rw)
+[root@centos ~]# mount|grep vdc
+
+/dev/vdc1 on /ext2 type ext2 (rw)
+[root@centos ~]# cat /proc/swaps
+
+Filename Type Size Used Priority
+/dev/dm-1 partition 835580 0 -1
+[root@centos ~]# swapon -a
+
+[root@centos ~]# cat /proc/swaps
+
+Filename Type Size Used Priority
+/dev/dm-1 partition 835580 0 -1
+/dev/vdc2 partition 307196 0 -2
+--------------------------------------------------------------------------------
+Applications -> System tools -> Disk utility -> Format (MBR)
+Create partition -> Type
+Mkdir /ext2
+Mount /dev/sdb1 /ext2
+Mkdir /ext3
+Mount /dev/sdb2 /ext3
+Mkdir /ext4
+Mount /dev/sdb3 /ext4
+Swapon /dev/sdb4
+vim /etc/fstab
+/dev/sdb1 /ext2 ext2 rw 0 0
+/dev/sdb2 /ext3 ext3 rw 0 0
+/dev/sdb3 /ext4 ext4 rw 0 0
+/dev/sdb4 swap swap defeults 0 0
+PROVJERA: mount –a, swapon –a
+
+
+
+
+5. Napravite NFS export za direktorij /media/bla (kreirajte navedeni direktorij) sa sync
+opcijama, za cijelu podmrežu sa prve mrežne kartice (eth2 ili eth4, po želji).
+--------------------------------------------------------------------------------
+[root@centos ~]# rpm -qa|grep -i nfs
+[root@centos ~]# yum install -y nfs-utils
+Loaded plugins: fastestmirror
+Setting up Install Process
+Loading mirror speeds from cached hostfile
+* base: mirror.met.hu
+* extras: mirror.met.hu
+* updates: mirror.met.hu
+Resolving Dependencies
+--> Running transaction check
+---> Package nfs-utils.x86_64 1:1.2.3-75.el6 will be installed
+...IZREZANO…
+Installed:
+nfs-utils.x86_64 1:1.2.3-75.el6
+Dependency Installed:
+keyutils.x86_64 0:1.4-5.el6 libevent.x86_64 0:1.4.13-4.el6 libgssglue.x86_64
+0:0.1-11.el6 libtirpc.x86_64 0:0.2.1-13.el6_9 nfs-utils-lib.x86_64 0:1.1.5-13.el6
+python-argparse.noarch 0:1.2.1-2.1.el6 rpcbind.x86_64 0:0.2.0-13.el6_9
+Complete!
+[root@centos ~]# mkdir -p /media/bla
+[root@centos ~]# ls -ald /media/bla/
+drwxr-xr-x. 2 root root 4096 Jun 10 00:48 /media/bla/
+[root@centos ~]# printf "/media/bla\t10.0.0.0/24(rw,sync,no_root_squash)\n">>/etc/exports
+[root@centos ~]# cat /etc/exports
+/media/bla 10.0.0.0/24(rw,sync)
+[root@centos ~]# service nfs start
+Starting NFS services: [ OK ]
+Starting NFS mountd: [FAILED]
+Starting NFS daemon: rpc.nfsd: writing fd to kernel failed: errno 111 (Connection refused)
+rpc.nfsd: unable to set any sockets for nfsd
+[FAILED]
+[root@centos ~]# /etc/init.d/rpcbind start
+Starting rpcbind: [ OK ]
+[root@centos ~]# service nfs start
+Starting NFS services: [ OK ]
+Starting NFS mountd: [ OK ]
+Starting NFS daemon: [ OK ]
+Starting RPC idmapd: [ OK ]
+[root@centos mnt]# exportfs -v
+/media/bla
+10.0.0.0/24(rw,no_root_squash,no_subtree_check,sec=sys,rw,no_root_squash,no_all_squash)
+[root@centos /]# mount -t nfs 10.0.0.114:/media/bla/ /mnt/
+[root@centos /]# mount|grep nfs
+sunrpc on /var/lib/nfs/rpc_pipefs type rpc_pipefs (rw)
+nfsd on /proc/fs/nfsd type nfsd (rw)
+10.0.0.114:/media/bla/ on /mnt type nfs (rw,vers=4,addr=10.0.0.114,clientaddr=10.0.0.114)
+[root@centos /]# cd /mnt/
+[root@centos mnt]# echo pipi>>tutu
+[root@centos mnt]# ls -al
+total 12
+drwxr-xr-x. 2 root root 4096 Jun 10 01:22 .
+dr-xr-xr-x. 25 root root 4096 Jun 10 00:32 ..
+-rw-r--r--. 1 root root 5 Jun 10 01:22 tutu
+[root@centos mnt]# cat /media/bla/tutu
+pipi
+--------------------------------------------------------------------------------
+Vim /etc/exports
+/media/bla 192.168.1.0(sync)
+Service nfs restart
+Exportfs –r
+PROVJERA: showmount –e localhost
+
+
+
+
+
+
+6. Za direktorij /ext4, napravite SAMBA share imena myshare, sa slijedeæim scenarijima:
+a. Zabranjeno globalno zapisivanje;
+b. Zabranjeno globalno èitanje;
+c. Dopušten pristup svim studentima;
+d. Dopušteno zapisivanje grupi završni;
+e. Share mora biti vidljiv na mreži
+--------------------------------------------------------------------------------
+INSTALIRATI SVE POTREBNO
+[root@centos ~]# yum install samba samba-client
+...
+Complete!
+PROVJERITI LOKALNE KORISNIKE I NAPRAVITI IM SAMBA PASSWORDE
+[root@centos ~]# grep student /etc/passwd
+student1:x:501:501::/home/student1:/bin/bash
+student2:x:502:502::/home/student2:/bin/bash
+student3:x:503:503::/home/student3:/bin/bash
+student4:x:504:504::/home/student4:/bin/bash
+[root@centos ~]# grep student /etc/group
+student1:x:501:
+student2:x:502:
+student3:x:503:
+student4:x:504:
+zavrsni:x:505:student1,student2
+diplomski:x:506:student3,student4
+[root@centos samba]# smbpasswd -a student1
+New SMB password:
+Retype new SMB password:
+Added user student1.
+[root@centos samba]# smbpasswd -a student2
+New SMB password:
+Retype new SMB password:
+Added user student2.
+[root@centos samba]# smbpasswd -a student3
+New SMB password:
+Retype new SMB password:
+Added user student3.
+[root@centos samba]# smbpasswd -a student4
+New SMB password:
+Retype new SMB password:
+Added user student4.
+[root@centos samba]# smbpasswd -a pja
+New SMB password:
+Retype new SMB password:
+Added user pja.
+[root@centos ~]# id pja
+uid=500(pja) gid=500(pja) groups=500(pja)
+PRIPREMITI FOLDER I FIREWALL
+(MOZE I JEDNOSTAVNIJE : SETENFORCE/SERVICE IPTABLES FIX :))
+[root@centos /]# ls -ldZ ext4
+drwxr-xr-x. root root system_u:object_r: file_t :s0 ext4
+[root@centos /]# chcon -t samba_share_t /ext4
+[root@centos /]# ls -ldZ ext4
+drwxr-xr-x. root root system_u:object_r: samba_share_t :s0 ext4
+[root@centos /]# chmod 777 /ext4
+Za firewall preporucam:
+yum install system-config-firewall-tui dbus dbus-python
+service messagebus start
+system-config-firewall-tui
+EDITIRATI smb.conf
+[root@centos samba]# tail -15 /etc/samba/smb.conf
+; writable = yes
+; printable = no
+; write list = +staff
+[ext4]
+comment = ext4 share
+path = /ext4
+printable = no
+# pretpostavljam da je ovo pisac htio reci:
+# share je vidljiv:
+public = yes
+# ALI SAMO mu smiju pristupiti obje grupe studenata, po default-u je read-only ALI grupa zavrsni
+SMIJE pisati
+writable = no
+valid users = @zavrsni, @diplomski
+write list = @zavrsni
+UPALI SAMBA SERVISE (NAPRAVI DA JE PERMANENTNO)
+[root@centos ~]# /etc/init.d/smb status
+smbd is stopped
+[root@centos ~]# /etc/init.d/smb start
+Starting SMB services: [ OK ]
+[root@centos ~]# /etc/init.d/nmb start
+Starting NMB services: [ OK ]
+[root@centos ~]# chkconfig smb on
+[root@centos ~]# chkconfig nmb on
+[root@centos ~]# chkconfig |grep [sn]mb
+nmb 0:off 1:off 2:on 3:on 4:on 5:on 6:off
+smb 0:off 1:off 2:on 3:on 4:on 5:on 6:off
+PROVJERA DA JE SVIMA VIDLJIV U MREZI
+[root@centos ~]# smbclient -L \\\\CENTOS -U guest
+Enter guest's password: <ENTER BEZ PASSWORDA>
+Anonymous login successful
+Domain=[MYGROUP] OS=[Unix] Server=[Samba 3.6.23-43.el6_9]
+Sharename Type Comment
+--------- ---- -------
+ext4 Disk ext4 share
+IPC$ IPC IPC Service (Samba Server Version 3.6.23-43.el6_9)
+Anonymous login successful
+Domain=[MYGROUP] OS=[Unix] Server=[Samba 3.6.23-43.el6_9]
+Server Comment
+--------- -------
+CENTOS Samba Server Version 3.6.23-43.el6_9
+Workgroup Master
+--------- -------
+MYGROUP CENTOS
+PROVJERA DA SE KORISNICI KOJI NISU STUDENTI NE MOGU SPOJITI
+[root@centos ~]# smbclient \\\\CENTOS\\ext4 -U pja
+Enter pja's password:
+Domain=[MYGROUP] OS=[Unix] Server=[Samba 3.6.23-43.el6_9]
+tree connect failed: NT_STATUS_ACCESS_DENIED
+PROVJERA DA STUDENT IZ GRUPE ZAVRSNI SMIJE PISATI
+[root@centos ~]# smbclient \\\\CENTOS\\ext4 -U student1
+Enter student1's password:
+Domain=[MYGROUP] OS=[Unix] Server=[Samba 3.6.23-43.el6_9]
+smb: \> put .bashrc
+putting file .bashrc as \.bashrc (1870000.0 kb/s) (average inf kb/s)
+smb: \> dir
+. D 0 Sat Jun 10 02:16:04 2017
+.. DR 0 Sat Jun 10 00:32:11 2017
+lost+found D 0 Sat Jun 10 00:11:06 2017
+.bashrc AH 187 Sat Jun 10 02:16:05 2017
+60954 blocks of size 8192. 57463 blocks available
+smb: \> quit
+PROVJERA DA STUDENT IZ GRUPE DIPLOMSKI SMIJE SAMO CITATI
+[root@centos ~]# smbclient \\\\CENTOS\\ext4 -U student3
+Enter student3's password:
+Domain=[MYGROUP] OS=[Unix] Server=[Samba 3.6.23-43.el6_9]
+smb: \> dir
+. D 0 Sat Jun 10 02:16:04 2017
+.. DR 0 Sat Jun 10 00:32:11 2017
+lost+found D 0 Sat Jun 10 00:11:06 2017
+.bashrc AH 187 Sat Jun 10 02:16:05 2017
+60954 blocks of size 8192. 57464 blocks available
+smb: \> put .bash_history
+NT_STATUS_ACCESS_DENIED opening remote file \.bash_history
+smb: \> get .bashrc
+getting file \.bashrc of size 187 as .bashrc (1870000.0 KiloBytes/sec) (average inf KiloBytes/sec)
+smb: \>
+yum install –y samba-*
+vim /etc/samba/smb.conf
+[myshare]
+Path = /ext4
+Public =yes
+Writable=no
+Readable=no
+Read list=student1, student2, student3, student4
+Browsable=yes
+Valid users=student1, student2, student3, student4
+Adduser korisnik1(2,3,4)
+Smbpsswd –a korisnik1(2,3,4)
+Chmod 777 /ext4
+Iskljucit firewall
+Setenforce 0
+service smb restart
+connect to server -> windows share
+Server:localhost
+Share:myshare
+User name:student1
+
+
+
+
+7. Instalirajte i trajno podignite servis httpd.
+Yum install httpd
+Chkconfig httpd on
+/etc/init.d./htppd start
+
+
+
+
+8. Zabranite korisniku root logiranje kroz SHH.
+Vim /etc/ssh/sshd_config
+# Prevent root logins:
+PermitRootLogin no
+Service sshd restart
